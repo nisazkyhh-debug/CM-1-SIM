@@ -1,0 +1,763 @@
+---
+title: "Analisis Kinerja Performa Film dan Perilaku Belanja Pelanggan: Studi Kasus Pendekatan Statistik dan Market Basket Analysis pada Database Sakila"
+author: "Nama: Annisa Qonitatudz Zakiyah Rahman | NIM: M0724004 | Kelas: B"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: default
+    highlight: pygments
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{=html}
+<!-- Impor Font Modern Google (Sora & Urbanist) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Navigasi Atas Glassmorphic dengan Switcher Tema Modern -->
+<div class="top-navbar">
+  <div class="nav-brand">Dashboard Sakila Analytics</div>
+  <div class="theme-switch-wrapper">
+    <span class="theme-label">Mode Gelap</span>
+    <label class="theme-switch" for="theme-checkbox">
+      <input type="checkbox" id="theme-checkbox" onclick="toggleTheme()" />
+      <div class="slider round"></div>
+    </label>
+  </div>
+</div>
+```
+
+```{css, echo=FALSE}
+:root {
+  --bg-body: #fdf2f8; /* pink-50 */
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --border-color: #fbcfe8; /* pink-200 */
+  --accent: #db2777; /* pink-600 */
+  --accent-light: #fce7f3; /* pink-100 */
+  --accent-gradient: linear-gradient(135deg, #db2777 0%, #2563eb 100%);
+  --table-stripe: #f8fafc;
+  --kpi-shadow: 0 10px 25px -5px rgba(219, 39, 119, 0.1), 0 8px 10px -6px rgba(219, 39, 119, 0.1);
+}
+
+body.dark-mode {
+  --bg-body: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --accent: #f472b6; /* pink-400 */
+  --accent-light: #831843; /* pink-900 */
+  --accent-gradient: linear-gradient(135deg, #f472b6 0%, #60a5fa 100%);
+  --table-stripe: #0f172a;
+  --kpi-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+
+
+body {
+  font-family: 'Urbanist', sans-serif !important;
+  background-color: var(--bg-body) !important;
+  color: var(--text-main) !important;
+  transition: all 0.3s ease;
+  padding-top: 90px !important;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Sora', sans-serif !important;
+  color: var(--text-main) !important;
+  font-weight: 700;
+}
+
+h1.title {
+  font-size: 2.2rem;
+  line-height: 1.4;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 25px;
+  font-weight: 800;
+  text-align: center;
+}
+
+p, li {
+  text-align: justify;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.main-container {
+  max-width: 98% !important;
+  width: 98% !important;
+  padding: 0 10px !important;
+  margin: 0 auto !important;
+}
+
+pre {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  background-color: var(--table-stripe) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+}
+
+
+.html-widget, .plotly, .visNetwork, .visNetwork.html-widget, svg, .plotly svg, .js-plotly-plot {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto;
+}
+
+
+.modebar {
+  display: none !important;
+}
+
+.visNetwork {
+  height: 500px !important;
+}
+
+.datatables {
+  width: 100% !important;
+  overflow-x: auto !important;
+}
+
+
+.top-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  z-index: 2000;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .top-navbar {
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.nav-brand {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+/* Toggle Switch Slider */
+.theme-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.theme-switch {
+  display: inline-block;
+  height: 24px;
+  position: relative;
+  width: 48px;
+}
+
+.theme-switch input {
+  display: none;
+}
+
+.slider {
+  background-color: #cbd5e1;
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+body.dark-mode .slider {
+  background-color: #334155;
+}
+
+.slider:before {
+  background-color: white;
+  bottom: 3px;
+  content: "";
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  transition: .4s;
+  width: 18px;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background: var(--accent-gradient);
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+
+.section.level2, .section.level3 {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 35px;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  border-radius: 20px;
+  box-shadow: var(--kpi-shadow);
+  transition: all 0.3s ease;
+  overflow: hidden; 
+}
+
+
+table:not(.dataTable) {
+  width: 100% !important;
+  margin: 25px 0 !important;
+  border-collapse: collapse !important;
+}
+
+table:not(.dataTable) th {
+  background-color: var(--table-stripe) !important;
+  color: var(--text-main) !important;
+  font-weight: 700 !important;
+  padding: 14px !important;
+  border-bottom: 2px solid var(--border-color) !important;
+  text-align: center !important;
+}
+
+table:not(.dataTable) td {
+  padding: 14px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-muted) !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+}
+
+
+.tocify {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--kpi-shadow) !important;
+  padding: 12px !important;
+}
+
+.tocify-item a {
+  color: var(--text-muted) !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  font-family: 'Urbanist', sans-serif;
+}
+
+.tocify-item.active {
+  background: var(--accent-gradient) !important;
+  border-radius: 8px;
+}
+
+.tocify-item.active a {
+  color: #ffffff !important;
+}
+
+blockquote {
+  background-color: var(--table-stripe) !important;
+  border-left: 4px solid var(--accent) !important;
+  color: var(--text-muted) !important;
+  padding: 18px 24px !important;
+  border-radius: 0 16px 16px 0;
+  margin: 25px 0 !important;
+  font-style: italic;
+}
+```
+
+```{=html}
+<!-- Script Pendukung Light/Dark Mode Switcher -->
+<script>
+function toggleTheme() {
+  const body = document.body;
+  const checkbox = document.getElementById('theme-checkbox');
+  
+  if (body.classList.contains('dark-mode')) {
+    body.classList.remove('dark-mode');
+    checkbox.checked = false;
+    localStorage.setItem('pinkblue-theme', 'light');
+  } else {
+    body.classList.add('dark-mode');
+    checkbox.checked = true;
+    localStorage.setItem('pinkblue-theme', 'dark');
+  }
+}
+
+// Inisialisasi tema saat halaman pertama kali dimuat
+document.addEventListener('DOMContentLoaded', (event) => {
+  const savedTheme = localStorage.getItem('pinkblue-theme');
+  const checkbox = document.getElementById('theme-checkbox');
+  
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+    if (checkbox) checkbox.checked = true;
+  } else {
+    if (checkbox) checkbox.checked = false;
+  }
+});
+</script>
+```
+
+```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, out.width = "100%", fig.width=10)
+library(DBI)
+library(RMySQL)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(treemapify)
+library(patchwork)
+library(arules)
+library(tidyr)
+library(DT)
+
+conn <- dbConnect(MySQL(), 
+                  dbname = "sakila", 
+                  host = "localhost", 
+                  port = 3306,
+                  user = "root", 
+                  password = "akusayangtatud11") 
+
+theme_premium <- theme_minimal() +
+  theme(
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA),
+    legend.background = element_rect(fill = "transparent", color = NA),
+    text = element_text(color = "#475569", family = "Urbanist"),
+    axis.text = element_text(color = "#64748b"),
+    axis.title = element_text(color = "#1e293b", face = "bold"),
+    plot.title = element_text(color = "#db2777", face = "bold", size = 12, family = "Sora", hjust = 0.5),
+    panel.grid.major = element_line(color = "#e2e8f0"),
+    panel.grid.minor = element_blank()
+  )
+```
+## Latar Belakang dan Tujuan
+
+Database Sakila adalah database relasional buatan MySQL yang mensimulasikan sistem persewaan film. Di dalamnya terdapat berbagai data yang saling terhubung, seperti data pelanggan, film, inventaris, pembayaran, hingga riwayat transaksi penyewaan. Laporan ini memanfaatkan database tersebut untuk menjalankan dua pendekatan analitik: analisis kinerja film berbasis statistik inferensial dan penambangan pola belanja pelanggan lewat Market Basket Analysis. 
+Secara umum, laporan ini bertujuan untuk mengidentifikasi genre serta rating MPAA yang paling berkontribusi terhadap pendapatan, menguji perbedaan rata-rata transaksi antar kelompok rating melalui uji ANOVA, membangun model regresi linier berganda untuk melihat atribut film mana yang paling memengaruhi pendapatan, serta menerapkan algoritma Apriori untuk menemukan pola asosiasi genre yang bisa dijadikan dasar strategi cross-selling. Keseluruhan temuan kemudian diterjemahkan menjadi rekomendasi yang actionable bagi manajemen operasional.
+
+
+## A — Kinerja Performa Film
+
+Bagian ini memaparkan performa finansial katalog film berdasarkan segmentasi genre dan klasifikasi sensor rating MPAA.
+
+### A.1 Agregasi Pendapatan Berdasarkan Kategori Film
+
+Tabel di bawah menyajikan agregasi frekuensi rental dan akumulasi pendapatan per genre film yang diurutkan dari kontributor terbesar.
+
+```{r a1_genre_aggregation}
+query_a1 <- "
+SELECT 
+    c.name AS Genre,
+    COUNT(r.rental_id) AS Total_Rentals,
+    SUM(p.amount) AS Total_Revenue,
+    ROUND(AVG(f.rental_rate), 2) AS Avg_Rental_Rate,
+    ROUND(AVG(f.replacement_cost), 2) AS Avg_Replacement_Cost
+FROM category c
+JOIN film_category fc ON c.category_id = fc.category_id
+JOIN film f ON fc.film_id = f.film_id
+JOIN inventory i ON f.film_id = i.film_id
+JOIN rental r ON i.inventory_id = r.inventory_id
+JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY c.name
+ORDER BY Total_Revenue DESC;
+"
+df_genre <- dbGetQuery(conn, query_a1)
+
+# Format tabel dengan DT (Interactive Data Table)
+datatable(df_genre, 
+          options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE),
+          colnames = c('Genre', 'Total Penyewaan', 'Pendapatan (USD)', 'Rata-rata Tarif Sewa (USD)', 'Rata-rata Biaya Penggantian (USD)'),
+          class = 'cell-border stripe hover') %>%
+  formatCurrency('Total_Revenue', '$') %>%
+  formatCurrency('Avg_Rental_Rate', '$') %>%
+  formatCurrency('Avg_Replacement_Cost', '$')
+```
+
+> **Insight:**\
+> Tabel di atas menampilkan rincian performa setiap genre secara absolut. Genre seperti "Sports" dan "Sci-Fi" sering berada di posisi teratas dari segi kontribusi pendapatan. 
+
+### A.2 Proporsi Pendapatan Berdasarkan Kategori Film
+
+Visualisasi treemap interaktif di bawah menampilkan proporsi kontribusi pendapatan masing-masing genre film terhadap total pendapatan keseluruhan.
+
+```{r a2_treemap, fig.width=9.5, fig.height=6}
+
+p_treemap <- plot_ly(
+  type = "treemap",
+  labels = df_genre$Genre,
+  parents = rep("Total Revenue", nrow(df_genre)),
+  values = df_genre$Total_Revenue,
+  textinfo = "label+value+percent parent",
+  hoverinfo = "label+value+percent parent",
+  marker = list(colorscale = "RdBu")
+) %>%
+  layout(
+    title = list(text = "Proporsi Kontribusi Pendapatan Berdasarkan Genre Film", font = list(family = "Sora", size = 15, color = "black"), x = 0.5),
+    paper_bgcolor = 'rgba(0,0,0,0)', 
+    plot_bgcolor = 'rgba(0,0,0,0)',
+    margin = list(t = 50, b = 20, l = 20, r = 20)
+  )
+
+p_treemap
+```
+
+> **Insight:**\
+> Melalui treemap ini, kita dapat mengetahui bahwa genre dengan kotak yang paling besar adalah penyumbang utama kelangsungan finansial persewaan. 
+
+### A.3 Kinerja Film Berdasarkan Klasifikasi Umur (MPAA)
+
+Visualisasi komparatif dilakukan untuk membandingkan kinerja film berdasarkan klasifikasi rating MPAA (G, PG, PG-13, R, NC-17) pada tiga parameter performa secara sejajar. 
+
+```{r a4_plotly_subplot, fig.width=10, fig.height=5.5}
+query_a4 <- "
+SELECT 
+    f.rating AS MPAA_Rating,
+    COUNT(r.rental_id) AS Total_Rentals,
+    SUM(p.amount) AS Total_Revenue,
+    AVG(f.replacement_cost) AS Avg_Replacement_Cost
+FROM film f
+JOIN inventory i ON f.film_id = i.film_id
+JOIN rental r ON i.inventory_id = r.inventory_id
+JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY f.rating;
+"
+df_mpaa <- dbGetQuery(conn, query_a4)
+
+# Plotly Subplots menggunakan hovertext 
+p1_plotly <- plot_ly(df_mpaa, x = ~MPAA_Rating, y = ~Total_Rentals, type = 'bar', 
+                     marker = list(color = '#db2777'),
+                     hoverinfo = 'text',
+                     hovertext = ~paste("Rating:", MPAA_Rating, "<br>Volume Sewa:", Total_Rentals, "kali")) %>%
+  layout(yaxis = list(title = "Volume Rentals"))
+
+p2_plotly <- plot_ly(df_mpaa, x = ~MPAA_Rating, y = ~Total_Revenue, type = 'bar', 
+                     marker = list(color = '#2563eb'),
+                     hoverinfo = 'text',
+                     hovertext = ~paste("Rating:", MPAA_Rating, "<br>Total Pendapatan: $", round(Total_Revenue, 2))) %>%
+  layout(yaxis = list(title = "Pendapatan (USD)"))
+
+p3_plotly <- plot_ly(df_mpaa, x = ~MPAA_Rating, y = ~Avg_Replacement_Cost, type = 'bar', 
+                     marker = list(color = '#9333ea'),
+                     hoverinfo = 'text',
+                     hovertext = ~paste("Rating:", MPAA_Rating, "<br>Rata-rata Biaya Ganti: $", round(Avg_Replacement_Cost, 2))) %>%
+  layout(yaxis = list(title = "Biaya Ganti (USD)"))
+
+p_mpaa_combined <- subplot(p1_plotly, p2_plotly, p3_plotly, nrows = 1, shareX = TRUE, titleY = TRUE, margin = 0.05) %>%
+  layout(
+    title = list(text = "Analisis Kinerja Film Berdasarkan Kategori Sensor MPAA", font = list(family = "Sora", size = 15, color = "black"), x = 0.5),
+    showlegend = FALSE,
+    paper_bgcolor = 'rgba(0,0,0,0)', 
+    plot_bgcolor = 'rgba(0,0,0,0)',
+    margin = list(t = 60)
+  )
+
+p_mpaa_combined
+```
+
+> **Insight:**\
+> Dalam grafik diatas terlihat bahwa klasifikasi PG-13 mendominasi dalam menghasilkan volume pesanan dan perolehan laba tertinggi. Film-film bersensor dewasa (R atau NC-17) juga menghasilkan pendapatan substansial yang cukup besar, padahal rata-rata beban biaya ganti inventaris relatif sama antar kelompok rating.
+
+### A.4 Pengujian Analysis of Variance (ANOVA)
+
+Uji statistik Analysis of Variance (ANOVA) diterapkan untuk mengevaluasi apakah kelompok rating MPAA membawa perbedaaan yang mendasar terhadap rata-rata pendapatan sewa harian per transaksi. Hasil uji diformat ke dalam tabel.
+
+```{r a5_anova_run}
+# Ambil data pembayaran individual dan rating film terkait
+query_anova <- "
+SELECT 
+    f.rating AS MPAA_Rating,
+    p.amount AS Payment_Amount
+FROM payment p
+JOIN rental r ON p.rental_id = r.rental_id
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film f ON i.film_id = f.film_id;
+"
+df_anova <- dbGetQuery(conn, query_anova)
+
+# Jalankan model ANOVA
+anova_model <- aov(Payment_Amount ~ MPAA_Rating, data = df_anova)
+anova_summary <- summary(anova_model)
+
+# Konversi tabel ANOVA ke dataframe
+df_anova_table <- as.data.frame(anova_summary[[1]])
+rownames(df_anova_table) <- c("Variasi Antar Grup (MPAA_Rating)", "Variasi Dalam Grup (Residuals)")
+
+datatable(df_anova_table, 
+          options = list(dom = 't', scrollX = TRUE),
+          class = 'cell-border stripe hover') %>%
+  formatRound(columns = c(1, 2, 3, 4, 5), digits = 4)
+```
+
+> **Insight:**\
+> Nilai signifikansi p-value < 0.05. Ini membuktikan secara statistik bahwa rata-rata nominal transaksi pembayaran sewa film tidak sama di antara kelompok-kelompok rating MPAA. Ada klasifikasi rating yang cenderung memberikan keuntungan transaksi individu yang lebih tinggi.
+
+### A.5 Pemodelan Regresi Linier Berganda
+
+Model regresi linier berganda ini mengukur seberapa besar total pendapatan sebuah film dipengaruhi oleh berbagai instrumen spesifikasi inherennya.
+
+```{r a7_regression}
+query_reg <- "
+SELECT 
+    f.film_id,
+    f.rental_rate,
+    f.rental_duration,
+    f.length,
+    f.replacement_cost,
+    COALESCE(SUM(p.amount), 0) AS Total_Revenue
+FROM film f
+LEFT JOIN inventory i ON f.film_id = i.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY f.film_id;
+"
+df_reg <- dbGetQuery(conn, query_reg)
+
+# Buat model regresi
+reg_model <- lm(Total_Revenue ~ rental_rate + rental_duration + length + replacement_cost, data = df_reg)
+reg_summary <- summary(reg_model)
+```
+
+Tabel berikut mendokumentasikan nilai koefisien parsial variabel prediktor:
+
+```{r a7_coef_table, echo=FALSE}
+# Tabel Ringkasan Koefisien Regresi
+df_coef_table <- as.data.frame(reg_summary$coefficients)
+colnames(df_coef_table) <- c("Estimasi", "Std. Error", "Nilai t", "p-value")
+
+datatable(df_coef_table, 
+          options = list(dom = 't', scrollX = TRUE),
+          class = 'cell-border stripe hover') %>%
+  formatRound(columns = c(1, 2, 3, 4), digits = 4)
+```
+
+Plot interaktif estimasi koefisien di bawah akan menginformasikan besaran dampak yang dibawa masing-masing parameter. 
+
+```{r a7_coef_plot, fig.width=9.5, fig.height=5}
+# Hilangkan intersep untuk visualisasi variabel prediktor
+df_coef_viz <- df_coef_table[-1, ]
+df_coef_viz$Variable <- rownames(df_coef_viz)
+df_coef_viz$lwr <- df_coef_viz$Estimasi - 1.96 * df_coef_viz$`Std. Error`
+df_coef_viz$upr <- df_coef_viz$Estimasi + 1.96 * df_coef_viz$`Std. Error`
+
+p_coef <- ggplot(df_coef_viz, aes(x = reorder(Variable, Estimasi), y = Estimasi, ymin = lwr, ymax = upr,
+                                  text = paste("Variabel Prediktor:", Variable,
+                                               "<br>Estimasi Koefisien:", round(Estimasi, 4),
+                                               "<br>p-value:", round(`p-value`, 6),
+                                               "<br>Batas Bawah CI:", round(lwr, 4),
+                                               "<br>Batas Atas CI:", round(upr, 4)))) +
+  geom_pointrange(color = "#2563eb", size = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#ef4444") +
+  coord_flip() +
+  labs(x = "Variabel Karakteristik Film",
+       y = "Estimasi Koefisien") +
+  theme_premium
+
+ggplotly(p_coef, tooltip = "text") %>%
+  layout(
+    title = list(text = "Pengaruh Variabel Terhadap Pendapatan Film (95% CI)", font = list(family = "Sora", size = 15, color = "black"), x = 0.5),
+    margin = list(t = 60),
+    paper_bgcolor = 'rgba(0,0,0,0)', 
+    plot_bgcolor = 'rgba(0,0,0,0)'
+  )
+```
+
+> **Insight:**\
+> Visualisasi komparatif koefisien secara transparan membeberkan bahwa atribut operasional `rental_rate` memegang kendali daya ungkit yang sangat telak atas penghasilan agregat film. Di sisi seberang, variabel seperti `length` (panjang durasi film) tidak menunjukkan andil material apapun, memberi petunjuk jelas agar upaya peraihan laba perusahaan ditekankan pada dinamika manipulasi rentang harga (rental rate) dan kelonggaran durasi waktu pinjam.
+
+------------------------------------------------------------------------
+
+## B — Analisis Asosiasi Keranjang Belanja
+
+Bagian ini menunjukkan penerapan Market Basket Analysis untuk mengidentifikasi pola keterkaitan antar genre film yang sering dipilih pelanggan dalam satu transaksi.
+
+
+### B.1 Landasan Teori 
+
+Market Basket Analysis merupakan metode yang digunakan untuk menemukan pola keterkaitan antar item dalam suatu transaksi. Pada penelitian ini, analisis dilakukan menggunakan algoritma Apriori dengan tiga ukuran utama, yaitu:
+
+1. Support, yaitu proporsi kemunculan suatu item atau kombinasi item dalam seluruh transaksi.
+2. Confidence, yaitu tingkat kemungkinan munculnya item tertentu ketika item lain telah muncul terlebih dahulu.
+3. Lift, yaitu ukuran kekuatan hubungan antar item. Nilai Lift > 1 menunjukkan hubungan yang saling mendukung, sedangkan Lift < 1 menunjukkan hubungan yang relatif lemah atau saling menggantikan.
+
+### B.2 Frekuensi Item pada Keranjang Transaksi
+
+Data histori penyewaan film diolah ke dalam bentuk basket transaction berdasarkan ID pelanggan dan tanggal transaksi. Grafik berikut menampilkan frekuensi kemunculan setiap genre dalam transaksi yang telah terbentuk.
+
+```{r b2_transactions}
+# Ambil relasi pelanggan, tanggal sewa, dan genre film yang disewa
+query_mba <- "
+SELECT 
+    r.customer_id, 
+    DATE(r.rental_date) AS rental_date, 
+    c.name AS genre
+FROM rental r
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film_category fc ON i.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id;
+"
+df_mba <- dbGetQuery(conn, query_mba)
+
+# Kelompokkan data per pelanggan per tanggal sewa
+df_mba_grouped <- df_mba %>%
+  group_by(customer_id, rental_date) %>%
+  summarise(genres = list(unique(genre)), .groups = "drop")
+trans <- as(df_mba_grouped$genres, "transactions")
+```
+
+```{r b2_frequency_plot, fig.width=9.5, fig.height=5.5}
+# Hitung frekuensi absolut
+item_freqs <- itemFrequency(trans, type = "absolute")
+df_freqs <- data.frame(
+  Genre = names(item_freqs),
+  Frekuensi = as.numeric(item_freqs)
+) %>% arrange(desc(Frekuensi))
+
+p_freq <- ggplot(df_freqs, aes(x = reorder(Genre, Frekuensi), y = Frekuensi, fill = Frekuensi,
+                              text = paste("Genre Film:", Genre,
+                                           "<br>Jumlah Keranjang:", Frekuensi, "kali"))) +
+  geom_bar(stat = "identity", width = 0.7) +
+  scale_fill_gradientn(colors = c("#fbcfe8", "#db2777", "#831843"), name = "Frekuensi") +
+  coord_flip() +
+  labs(x = "Genre Film",
+       y = "Jumlah Kemunculan dalam Transaksi") +
+  theme_premium
+
+ggplotly(p_freq, tooltip = "text") %>%
+  layout(
+    title = list(text = "Frekuensi Keterlibatan Genre dalam Keranjang Transaksi Harian", font = list(family = "Sora", size = 15, color = "#db2777"), x = 0.5),
+    margin = list(t = 60),
+    paper_bgcolor = 'rgba(0,0,0,0)', 
+    plot_bgcolor = 'rgba(0,0,0,0)'
+  )
+```
+
+> **Insight:**\
+> Berdasarkan hasil analisis, genre Sports, Animation, dan Action merupakan genre yang paling banyak diminati pelanggan. Informasi ini dapat menjadi pertimbangan bagi manajemen untuk memastikan ketersediaan film pada ketiga genre tersebut tetap terjaga.
+
+
+------------------------------------------------------------------------
+
+### B.3 Pemodelan Algoritma Apriori
+
+Di sini, algoritma Apriori bertugas menelusuri sekumpulan item (rules) yang memenuhi batas kelayakan minimal di database. Penemuan ini diturunkan menjadi Top 15 aturan lintas-sewa (berbasis Lift tertinggi) yang dapat difilter secara dinamis.
+
+```{r b3_apriori}
+# Jalankan algoritma apriori
+rules <- apriori(trans, parameter = list(supp = 0.002, conf = 0.05, minlen = 2))
+
+# Urutkan berdasarkan lift tertinggi
+rules_sorted <- sort(rules, by = "lift", decreasing = TRUE)
+top_15_rules <- head(rules_sorted, 15)
+
+df_rules <- as(top_15_rules, "data.frame")
+
+# Pemisahan format visual LHS dan RHS
+df_rules_clean <- df_rules %>%
+  mutate(
+    rules = as.character(rules),
+    LHS = sub("^\\{(.*)\\} => \\{(.*)\\}$", "\\1", rules),
+    RHS = sub("^\\{(.*)\\} => \\{(.*)\\}$", "\\2", rules)
+  ) %>%
+  select(LHS, RHS, support, confidence, lift, count)
+
+datatable(df_rules_clean, 
+          options = list(pageLength = 15, autoWidth = TRUE, scrollX = TRUE),
+          colnames = c('Left Hand Side (LHS)', 'Right Hand Side (RHS)', 'Support', 'Confidence', 'Lift', 'Jumlah Transaksi'),
+          class = 'cell-border stripe hover') %>%
+  formatRound(c('support', 'confidence', 'lift'), 4)
+```
+
+> **Insight:**\
+> Aturan asosiasi yang diperoleh dapat dimanfaatkan sebagai dasar strategi *cross-selling*. Jika suatu kombinasi genre memiliki nilai Lift yang tinggi, sistem dapat merekomendasikan film dari genre RHS saat pengguna memilih film dari genre LHS, sehingga peluang penyewaan film lain dapat meningkat.
+
+
+------------------------------------------------------------------------
+
+### B.4 Matriks Asosiasi (Heatmap Lift)
+
+Untuk melihat pola keterkaitan hubungan antar pasangan genre film, digunakan heatmap Lift yang menampilkan nilai asosiasi dari setiap kombinasi genre secara dua arah (LHS ke RHS). Perbedaan intensitas warna pada heatmap memudahkan identifikasi pasangan genre yang memiliki keterkaitan kuat maupun lemah, sehingga pola preferensi pelanggan dapat terlihat dengan lebih jelas. 
+
+```{r b6_lift_heatmap, fig.width=9.5, fig.height=8}
+# Mengambil seluruh kemungkinan aturan berpasangan dengan maxlen=2
+rules_l2 <- apriori(trans, parameter = list(supp = 0.0001, conf = 0.0001, minlen = 2, maxlen = 2))
+df_pairs <- as(rules_l2, "data.frame")
+
+# Ekstraksi dan pemetaan grid lengkap
+df_pairs_clean <- df_pairs %>%
+  mutate(
+    rules = as.character(rules),
+    LHS = sub("^\\{(.*)\\} => \\{(.*)\\}$", "\\1", rules),
+    RHS = sub("^\\{(.*)\\} => \\{(.*)\\}$", "\\2", rules)
+  ) %>%
+  select(LHS, RHS, lift)
+
+genres_all <- unique(df_mba$genre)
+df_grid <- df_pairs_clean %>%
+  complete(LHS = genres_all, RHS = genres_all, fill = list(lift = 1.0))
+
+# Plot heatmap menggunakan ggplot
+p_heatmap <- ggplot(df_grid, aes(x = LHS, y = RHS, fill = lift,
+                                 text = paste("LHS (Asal):", LHS,
+                                              "<br>RHS (Tujuan):", RHS,
+                                              "<br>Lift Score:", round(lift, 4)))) +
+  geom_tile(color = "white", linewidth = 0.1) +
+  scale_fill_gradient2(low = "darkblue", mid = "#fdf2f8", high = "#db2777", midpoint = 1.0, name = "Lift") +
+  labs(x = "Genre Asal (LHS)",
+       y = "Genre Tujuan (RHS)") +
+  theme_premium +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplotly(p_heatmap, tooltip = "text") %>%
+  layout(
+    title = list(text = "Matriks Heatmap Lift Asosiasi Berpasangan Kategori Film", font = list(family = "Sora", size = 15, color = "black"), x = 0.5),
+    margin = list(t = 60),
+    paper_bgcolor = 'rgba(0,0,0,0)', 
+    plot_bgcolor = 'rgba(0,0,0,0)'
+  )
+```
+
+> **Insight:**\
+> Berdasarkan Heatmap tersebut diketahui bahwa pelanggan cenderung memilih film yang sifatnya kanibalistik di hari yang sama. Oleh karena itu, perusahaan sebaiknya menghindari pemberian rekomendasi dua kategori film tersebut secara berdampingan agar variasi tontonan yang ditawarkan tetap terjaga dan risiko kejenuhan pelanggan dapat diminimalkan.
+
+------------------------------------------------------------------------
+
+## Kesimpulan Strategis dan Implikasi Manajemen
+
+Berdasarkan hasil analisis statistik komprehensif terhadap kinerja katalog film dan pola perilaku belanja pelanggan pada database Sakila, berikut rekomendasi ringkas bagi manajemen operasional:
+
+1. **Optimalisasi Portofolio Genre**: Genre Sports, Animation, dan Action mendominasi frekuensi keranjang transaksi harian. Maka manajemen perlu memastikan ketersediaan stok inventaris yang memadai untuk ketiga genre tersebut untuk meminimalisasi potensi kehilangan pendapatan akibat kekosongan stok.
+
+2. **Implementasi Cross-Selling Berbasis Kaidah Asosiasi**: Tabel Top 15 rules dan matriks heatmap lift mengidentifikasi pasangan genre dengan nilai lift unggul. Rekomendasi film berbasis kaidah ini layak diintegrasikan ke dalam antarmuka peminjaman sebagai banner saran otomatis, namun harus dihindari untuk pasangan ber-lift rendah yang bersifat substitutif.
+
+3. **Fleksibilitas Tarif Adaptif per Rating MPAA**: Uji ANOVA mengonfirmasi adanya perbedaan signifikan rata-rata nilai transaksi antar kelompok rating. Dikombinasikan dengan temuan model regresi yang menempatkan `rental_rate` sebagai prediktor terkuat pendapatan, manajemen memiliki justifikasi statistik yang kuat untuk menerapkan kebijakan penetapan harga diferensial per klasifikasi rating MPAA guna memaksimalkan perolehan laba.
